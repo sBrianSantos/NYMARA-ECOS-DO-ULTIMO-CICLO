@@ -112,3 +112,11 @@ InitTestScene*.unity*
 
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
+
+# --- NYMARA: adicoes ao template ---
+# Arquivos gerados pelo sistema operacional
+.DS_Store
+Thumbs.db
+desktop.ini
+# Configuracoes locais de IDE (JetBrains)
+.idea/
