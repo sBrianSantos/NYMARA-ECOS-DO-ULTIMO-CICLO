@@ -29,6 +29,8 @@ namespace Nymara.Enemies
         [SerializeField] private SpriteRenderer body;
         [Tooltip("Alvo a perseguir (o protagonista).")]
         [SerializeField] private Transform target;
+        [Tooltip("Estabilidade do alvo. Preenchida por SetTarget; se vazia, é resolvida a partir do alvo.")]
+        [SerializeField] private StabilityComponent targetStability;
 
         [Header("Patrulha")]
         [SerializeField, Min(0f)] private float patrolDistance = 2.5f;
@@ -66,7 +68,6 @@ namespace Nymara.Enemies
         [SerializeField] private Color staggerColor = new Color(0.7f, 0.55f, 0.85f);
 
         private Rigidbody2D rb;
-        private StabilityComponent targetStability;
         private Vector3 homePosition;
         private int facing = 1;
         private int patrolDirection = 1;
@@ -84,7 +85,7 @@ namespace Nymara.Enemies
             if (liberation == null) liberation = GetComponent<EnemyLiberation>();
             if (stability == null) Debug.LogError($"[{nameof(TestEnemyController)}] StabilityComponent ausente.", this);
             if (attackHitbox == null) Debug.LogError($"[{nameof(TestEnemyController)}] AttackHitbox não atribuída.", this);
-            if (target != null) targetStability = target.GetComponent<StabilityComponent>();
+            ResolveTargetStability();
             homePosition = transform.position;
             facing = transform.localScale.x >= 0f ? 1 : -1;
         }
@@ -110,7 +111,20 @@ namespace Nymara.Enemies
         public void SetTarget(Transform newTarget)
         {
             target = newTarget;
-            targetStability = target != null ? target.GetComponent<StabilityComponent>() : null;
+            targetStability = null;
+            ResolveTargetStability();
+        }
+
+        /// <summary>Garante que a estabilidade corresponde ao alvo atual (também quando o alvo é atribuído depois do Awake).</summary>
+        private void ResolveTargetStability()
+        {
+            if (target == null)
+            {
+                targetStability = null;
+                return;
+            }
+            if (targetStability == null || !targetStability.transform.IsChildOf(target))
+                targetStability = target.GetComponentInParent<StabilityComponent>();
         }
 
         // ------------------------------------------------------------------ eventos
@@ -241,7 +255,9 @@ namespace Nymara.Enemies
         private bool CanSeeTarget()
         {
             if (target == null || !target.gameObject.activeInHierarchy) return false;
-            if (targetStability != null && (targetStability.IsDepleted)) return false;
+            if (targetStability == null) ResolveTargetStability();
+            // Protagonista desestabilizado (em retorno): deixa de ser alvo.
+            if (targetStability != null && targetStability.IsDepleted) return false;
             Vector2 d = target.position - transform.position;
             return Mathf.Abs(d.x) <= detectRange && Mathf.Abs(d.y) <= maxVerticalDetect;
         }

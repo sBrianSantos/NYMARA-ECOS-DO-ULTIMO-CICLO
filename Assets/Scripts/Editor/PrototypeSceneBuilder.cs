@@ -429,7 +429,10 @@ namespace Nymara.EditorTools
             s.x = Mathf.Abs(s.x) * facing;
             go.transform.localScale = s;
             var controller = go.GetComponent<TestEnemyController>();
-            SetProps(controller, so => so.FindProperty("target").objectReferenceValue = target);
+            // SetTarget grava o alvo e a estabilidade dele (ambos serializados na instância da cena).
+            controller.SetTarget(target);
+            EditorUtility.SetDirty(controller);
+            PrefabUtility.RecordPrefabInstancePropertyModifications(controller);
             return controller;
         }
 

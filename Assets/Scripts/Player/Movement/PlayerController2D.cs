@@ -63,6 +63,12 @@ namespace Nymara.Player
         [Tooltip("Padrão do MVP: sem invulnerabilidade durante o dash.")]
         [SerializeField] private bool dashGrantsInvulnerability = false;
 
+        [Header("Impulso de ataque")]
+        [Tooltip("Fração da velocidade do impulso mantida quando ele termina ou é cancelado (0 = para na hora).")]
+        [SerializeField, Range(0f, 1f)] private float attackImpulseEndSpeedKeep = 0f;
+        [Tooltip("Interrompe o impulso ao encostar em parede ou inimigo (usa a mesma máscara do dash), para não empurrá-los.")]
+        [SerializeField] private bool attackImpulseStopsAtObstacles = true;
+
         [Header("Recuo ao ser atingido")]
         [SerializeField, Min(0f)] private float defaultHurtKnockback = 6f;
         [SerializeField, Min(0f)] private float defaultHurtLift = 4f;
@@ -87,7 +93,10 @@ namespace Nymara.Player
         private float horizontalControlMultiplier = 1f;
         private bool jumpBlocked;
         private bool facingLocked;
-        private float? pendingHorizontalVelocity;
+        private float impulseVelocityX;
+        private float impulseTimeLeft;
+        private bool impulseEndPending;
+        private const float ImpulseTimeEpsilon = 0.0005f;
         private float fallSpeedClamp = -1f;
 
         public int Facing { get; private set; } = 1;
@@ -96,6 +105,8 @@ namespace Nymara.Player
         public bool IsStunned => stunTimeLeft > 0f;
         public bool ControlEnabled => controlEnabled;
         public int DashCharges => dashCharges;
+        /// <summary>True enquanto um impulso de ataque controla a velocidade horizontal.</summary>
+        public bool IsImpulseActive => impulseTimeLeft > 0f;
         /// <summary>Contador de pulos executados (diagnóstico no HUD).</summary>
         public int JumpCount { get; private set; }
         public Vector2 Velocity => rb != null ? rb.linearVelocity : Vector2.zero;
@@ -180,7 +191,7 @@ namespace Nymara.Player
             dashTimeLeft = dashDuration;
             isRisingFromJump = false;
             jumpCutPending = false;
-            pendingHorizontalVelocity = null;
+            DropHorizontalImpulse();
             rb.gravityScale = 0f;
             if (dashGrantsInvulnerability && stability != null) stability.SetForcedInvulnerable(true);
             DashStarted?.Invoke();
@@ -235,19 +246,45 @@ namespace Nymara.Player
             }
 
             // Horizontal
-            if (pendingHorizontalVelocity.HasValue)
+            if (impulseEndPending)
             {
-                v.x = pendingHorizontalVelocity.Value;
-                pendingHorizontalVelocity = null;
+                // O impulso acabou (ou foi cancelado): não deixa velocidade residual involuntária.
+                v.x *= attackImpulseEndSpeedKeep;
+                impulseEndPending = false;
             }
 
-            float moveInput = controlEnabled && input != null ? input.MoveX : 0f;
-            float target = moveInput * maxRunSpeed * horizontalControlMultiplier;
-            bool accelerating = Mathf.Abs(target) > 0.01f && (Mathf.Abs(v.x) < Mathf.Abs(target) || Mathf.Sign(v.x) != Mathf.Sign(target));
-            float rate = grounded
-                ? (accelerating ? groundAcceleration : groundDeceleration)
-                : (accelerating ? airAcceleration : airDeceleration);
-            v.x = Mathf.MoveTowards(v.x, target, rate * dt);
+            if (impulseTimeLeft > 0f)
+            {
+                // Impulso de ataque: mantém a velocidade pedida pela duração configurada,
+                // sem passar pela aceleração/desaceleração normal (que o anularia em 1-2 passos).
+                int impulseDirection = impulseVelocityX >= 0f ? 1 : -1;
+                if (attackImpulseStopsAtObstacles && IsBlockedAhead(impulseDirection, Mathf.Abs(impulseVelocityX) * dt))
+                {
+                    v.x = 0f;
+                    impulseTimeLeft = 0f;
+                }
+                else
+                {
+                    v.x = impulseVelocityX;
+                    impulseTimeLeft -= dt;
+                    // Tolerância: evita um passo extra por erro de arredondamento (ex.: 0,08 s = 4 passos de 0,02 s).
+                    if (impulseTimeLeft <= ImpulseTimeEpsilon)
+                    {
+                        impulseTimeLeft = 0f;
+                        impulseEndPending = true;
+                    }
+                }
+            }
+            else
+            {
+                float moveInput = controlEnabled && input != null ? input.MoveX : 0f;
+                float target = moveInput * maxRunSpeed * horizontalControlMultiplier;
+                bool accelerating = Mathf.Abs(target) > 0.01f && (Mathf.Abs(v.x) < Mathf.Abs(target) || Mathf.Sign(v.x) != Mathf.Sign(target));
+                float rate = grounded
+                    ? (accelerating ? groundAcceleration : groundDeceleration)
+                    : (accelerating ? airAcceleration : airDeceleration);
+                v.x = Mathf.MoveTowards(v.x, target, rate * dt);
+            }
 
             // Pulo (com buffer e coyote time)
             bool canUseGround = grounded || Time.time - lastGroundedTime <= coyoteTime;
@@ -352,8 +389,32 @@ namespace Nymara.Player
         /// <summary>Limita a velocidade de queda (valor negativo desliga).</summary>
         public void SetFallSpeedClamp(float maxFall) => fallSpeedClamp = maxFall;
 
-        /// <summary>Define a velocidade horizontal no próximo passo de física (ex.: avanço de golpe).</summary>
-        public void RequestHorizontalVelocity(float velocityX) => pendingHorizontalVelocity = velocityX;
+        /// <summary>
+        /// Pede um impulso horizontal (ex.: avanço de golpe): a velocidade é mantida por <paramref name="duration"/>
+        /// segundos e depois o movimento normal volta. Ignorado durante dash, atordoamento ou sem controle.
+        /// </summary>
+        public void RequestHorizontalImpulse(float velocityX, float duration)
+        {
+            if (!controlEnabled || IsDashing || IsStunned) return;
+            if (duration <= 0f || Mathf.Approximately(velocityX, 0f)) return;
+            impulseVelocityX = velocityX;
+            impulseTimeLeft = duration;
+            impulseEndPending = false;
+        }
+
+        /// <summary>Cancela o impulso em andamento; a velocidade residual é cortada no próximo passo de física.</summary>
+        public void ClearHorizontalImpulse()
+        {
+            if (impulseTimeLeft > 0f) impulseEndPending = true;
+            impulseTimeLeft = 0f;
+        }
+
+        /// <summary>Descarta o impulso sem tocar na velocidade (quando dash, recuo ou teleporte assumem o movimento).</summary>
+        private void DropHorizontalImpulse()
+        {
+            impulseTimeLeft = 0f;
+            impulseEndPending = false;
+        }
 
         public void FaceDirection(int direction)
         {
@@ -364,7 +425,7 @@ namespace Nymara.Player
         {
             if (IsDashing) EndDash(rb.linearVelocity);
             isRisingFromJump = false;
-            pendingHorizontalVelocity = null;
+            DropHorizontalImpulse();
             rb.linearVelocity = velocity;
             stunTimeLeft = Mathf.Max(stunTimeLeft, stunDuration);
         }
@@ -375,6 +436,7 @@ namespace Nymara.Player
             if (!value)
             {
                 if (IsDashing) EndDash(rb.linearVelocity);
+                DropHorizontalImpulse();
                 rb.linearVelocity = Vector2.zero;
                 lastJumpPressedTime = float.NegativeInfinity;
             }
@@ -394,7 +456,7 @@ namespace Nymara.Player
             jumpBlocked = false;
             facingLocked = false;
             fallSpeedClamp = -1f;
-            pendingHorizontalVelocity = null;
+            DropHorizontalImpulse();
         }
 
         private void OnDrawGizmosSelected()

@@ -36,6 +36,8 @@ namespace Nymara.Player
         public Vector2 hitboxSize = new Vector2(1.3f, 1f);
         [Tooltip("Velocidade de avanço aplicada no início do golpe (0 = nenhum).")]
         public float lungeSpeed = 2.5f;
+        [Tooltip("Duração do avanço, a partir do início do golpe (s). 0 = sem avanço.")]
+        [Min(0f)] public float lungeDuration = 0.08f;
         [Min(0f)] public float knockbackSpeed = 3f;
         [Min(0f)] public float knockbackLift = 1.5f;
         [Min(0f)] public float staggerTime = 0.25f;
@@ -69,9 +71,9 @@ namespace Nymara.Player
         [Header("Combo básico (hipótese: 3 golpes)")]
         [SerializeField] private AttackDefinition[] comboAttacks =
         {
-            new AttackDefinition { name = "Golpe 1", damage = 1f, startup = 0.05f, active = 0.10f, recovery = 0.15f, hitboxOffset = new Vector2(0.85f, 0.1f), hitboxSize = new Vector2(1.3f, 1.0f), lungeSpeed = 2.5f, knockbackSpeed = 3f, staggerTime = 0.25f },
-            new AttackDefinition { name = "Golpe 2", damage = 1f, startup = 0.05f, active = 0.10f, recovery = 0.17f, hitboxOffset = new Vector2(0.9f, 0.1f), hitboxSize = new Vector2(1.4f, 1.1f), lungeSpeed = 3f, knockbackSpeed = 3.5f, staggerTime = 0.25f },
-            new AttackDefinition { name = "Golpe 3", damage = 1.5f, startup = 0.08f, active = 0.12f, recovery = 0.30f, hitboxOffset = new Vector2(1.0f, 0.1f), hitboxSize = new Vector2(1.7f, 1.2f), lungeSpeed = 4.5f, knockbackSpeed = 6f, knockbackLift = 2.5f, staggerTime = 0.4f, hitStop = 0.06f, debugColor = new Color(1f, 0.6f, 0.2f, 0.5f) },
+            new AttackDefinition { name = "Golpe 1", damage = 1f, startup = 0.05f, active = 0.10f, recovery = 0.15f, hitboxOffset = new Vector2(0.85f, 0.1f), hitboxSize = new Vector2(1.3f, 1.0f), lungeSpeed = 2.5f, lungeDuration = 0.08f, knockbackSpeed = 3f, staggerTime = 0.25f },
+            new AttackDefinition { name = "Golpe 2", damage = 1f, startup = 0.05f, active = 0.10f, recovery = 0.17f, hitboxOffset = new Vector2(0.9f, 0.1f), hitboxSize = new Vector2(1.4f, 1.1f), lungeSpeed = 3f, lungeDuration = 0.08f, knockbackSpeed = 3.5f, staggerTime = 0.25f },
+            new AttackDefinition { name = "Golpe 3", damage = 1.5f, startup = 0.08f, active = 0.12f, recovery = 0.30f, hitboxOffset = new Vector2(1.0f, 0.1f), hitboxSize = new Vector2(1.7f, 1.2f), lungeSpeed = 4.5f, lungeDuration = 0.1f, knockbackSpeed = 6f, knockbackLift = 2.5f, staggerTime = 0.4f, hitStop = 0.06f, debugColor = new Color(1f, 0.6f, 0.2f, 0.5f) },
         };
         [Tooltip("Tempo após o fim de um golpe em que o próximo toque continua o combo (s).")]
         [SerializeField, Min(0f)] private float comboWindow = 0.35f;
@@ -88,7 +90,7 @@ namespace Nymara.Player
         [SerializeField] private AttackDefinition chargedAttack = new AttackDefinition
         {
             name = "Carregado", damage = 3f, startup = 0.1f, active = 0.14f, recovery = 0.35f,
-            hitboxOffset = new Vector2(1.1f, 0.1f), hitboxSize = new Vector2(2.2f, 1.4f), lungeSpeed = 7f,
+            hitboxOffset = new Vector2(1.1f, 0.1f), hitboxSize = new Vector2(2.2f, 1.4f), lungeSpeed = 7f, lungeDuration = 0.12f,
             knockbackSpeed = 9f, knockbackLift = 3f, staggerTime = 0.6f, hitStop = 0.09f, debugColor = new Color(1f, 0.35f, 0.15f, 0.55f)
         };
 
@@ -96,7 +98,7 @@ namespace Nymara.Player
         [SerializeField] private AttackDefinition aerialAttack = new AttackDefinition
         {
             name = "Aéreo", damage = 1.5f, startup = 0.04f, active = 0.14f, recovery = 0.14f,
-            hitboxOffset = new Vector2(0.6f, -0.6f), hitboxSize = new Vector2(1.4f, 1.3f), lungeSpeed = 0f,
+            hitboxOffset = new Vector2(0.6f, -0.6f), hitboxSize = new Vector2(1.4f, 1.3f), lungeSpeed = 0f, lungeDuration = 0f,
             knockbackSpeed = 4f, knockbackLift = 0f, staggerTime = 0.3f, hitStop = 0.04f, debugColor = new Color(0.4f, 0.8f, 1f, 0.5f)
         };
         [SerializeField, Min(1)] private int maxAerialAttacksPerAirtime = 1;
@@ -346,8 +348,10 @@ namespace Nymara.Player
             {
                 controller.SetHorizontalControl(0f);
                 controller.SetJumpBlocked(true);
-                if (Mathf.Abs(attack.lungeSpeed) > 0f)
-                    controller.RequestHorizontalVelocity(controller.Facing * attack.lungeSpeed);
+                // Avanço do golpe: pedido ao controlador (único dono da velocidade), na direção atual.
+                controller.ClearHorizontalImpulse();
+                if (Mathf.Abs(attack.lungeSpeed) > 0f && attack.lungeDuration > 0f)
+                    controller.RequestHorizontalImpulse(controller.Facing * attack.lungeSpeed, attack.lungeDuration);
             }
 
             AttackStarted?.Invoke(kind, kind == AttackKind.Basic ? comboIndex + 1 : 0);
@@ -416,6 +420,7 @@ namespace Nymara.Player
             phaseTimeLeft = 0f;
             if (controller != null)
             {
+                controller.ClearHorizontalImpulse();
                 controller.SetHorizontalControl(1f);
                 controller.SetJumpBlocked(false);
                 controller.SetFacingLocked(false);
