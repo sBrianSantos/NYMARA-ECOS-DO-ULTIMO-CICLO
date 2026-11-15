@@ -50,7 +50,7 @@ namespace Nymara.EditorTools
         public static void ConfigureImporters()
         {
             var files = Directory.GetFiles(ArtRoot, "*.png", SearchOption.AllDirectories)
-                .Select(f => f.Replace('\\', '/')).Where(f => !f.EndsWith("PrototypeSquare.png")).ToList();
+                .Select(f => f.Replace('\\', '/')).Where(f => !f.EndsWith("PrototypeSquare.png") && !f.Contains("/Bren/Initial/") && !f.Contains("/Bren/Shared/")).ToList();  // fase inicial: BrenPhaseSetup
             foreach (var path in files)
             {
                 var ti = AssetImporter.GetAtPath(path) as TextureImporter;
@@ -158,7 +158,7 @@ namespace Nymara.EditorTools
                 var visualRoot = root.transform.Find("VisualRoot");
                 var bodyT = visualRoot.Find("Body");
                 var body = bodyT.GetComponent<SpriteRenderer>();
-                body.sprite = S("Bren/Bren_idle_0");
+                body.sprite = S(BrenArtPaths.Sword("idle_0"));
                 body.drawMode = SpriteDrawMode.Simple;
                 body.color = Color.white;
                 body.sortingOrder = 10;
@@ -173,18 +173,18 @@ namespace Nymara.EditorTools
 
                 var anim = new SerializedObject(GetOrAdd<BrenSpriteAnimator>(root));
                 Ref(anim, "body", body); Ref(anim, "controller", ctrl); Ref(anim, "combat", combat); Ref(anim, "respawn", respawn);
-                Arr(anim, "idle", new Object[] { S("Bren/Bren_idle_0"), S("Bren/Bren_idle_1") });
-                Arr(anim, "run", Enumerable.Range(0, 6).Select(i => (Object)S($"Bren/Bren_run_{i}")).ToList());
-                foreach (var f in new[] { "jump", "apex", "fall", "land", "dash", "hurt" }) Ref(anim, f, S($"Bren/Bren_{f}"));
+                Arr(anim, "idle", new Object[] { S(BrenArtPaths.Sword("idle_0")), S(BrenArtPaths.Sword("idle_1")) });
+                Arr(anim, "run", Enumerable.Range(0, 6).Select(i => (Object)S(BrenArtPaths.Sword($"run_{i}"))).ToList());
+                foreach (var f in new[] { "jump", "apex", "fall", "land", "dash", "hurt" }) Ref(anim, f, S(BrenArtPaths.Sword($"{f}")));
                 for (int i = 1; i <= 3; i++)
                 {
-                    Ref(anim, $"atk{i}Wind", S($"Bren/Bren_atk{i}_wind"));
-                    Ref(anim, $"atk{i}Hit", S($"Bren/Bren_atk{i}_hit"));
-                    Ref(anim, $"atk{i}Rec", S($"Bren/Bren_atk{i}_rec"));
+                    Ref(anim, $"atk{i}Wind", S(BrenArtPaths.Sword($"atk{i}_wind")));
+                    Ref(anim, $"atk{i}Hit", S(BrenArtPaths.Sword($"atk{i}_hit")));
+                    Ref(anim, $"atk{i}Rec", S(BrenArtPaths.Sword($"atk{i}_rec")));
                 }
-                Ref(anim, "charge", S("Bren/Bren_charge")); Ref(anim, "chargeFull", S("Bren/Bren_charge_full"));
-                Ref(anim, "chargedHit", S("Bren/Bren_charged_hit"));
-                Ref(anim, "diveWind", S("Bren/Bren_dive_wind")); Ref(anim, "dive", S("Bren/Bren_dive"));
+                Ref(anim, "charge", S(BrenArtPaths.Sword("charge"))); Ref(anim, "chargeFull", S(BrenArtPaths.Sword("charge_full")));
+                Ref(anim, "chargedHit", S(BrenArtPaths.Sword("charged_hit")));
+                Ref(anim, "diveWind", S(BrenArtPaths.Sword("dive_wind"))); Ref(anim, "dive", S(BrenArtPaths.Sword("dive")));
                 anim.ApplyModifiedPropertiesWithoutUndo();
 
                 var vfx = new SerializedObject(GetOrAdd<PlayerVfx>(root));

@@ -28,6 +28,17 @@ No ar, o ataque sai ao **pressionar** e é um **mergulho vertical**: o protagoni
 O dash cancela golpes e cargas e **atravessa os Ecos** (não atravessa paredes, chão nem obstáculos). Pular cancela a carga. Sofrer impacto cancela o golpe.
 Os bindings ficam em `Assets/Settings/Input/NymaraPrototype.inputactions`. O `InputSystem_Actions` do template não foi alterado.
 
+## Fases visuais de Bren e Prototype 02 (feat/bren-initial-visual)
+- **Duas fases, pastas separadas** em `Assets/Art/Prototype/Bren`:
+  - `Initial/`: Bren antes da Espada de Arua, sem arma. Hoje só existe o Idle (8 quadros em `Initial/Idle`).
+  - `Arua_Sword/`: Bren com a espada, usado aqui no Prototype 01 (28 quadros provisórios em Idle, Run, Jump, Fall, Land, Dash, Hurt e `Combat/*`).
+  - `Shared/`: referências, conceitos e paletas comuns às duas fases (vazia por enquanto).
+- **Prefabs:**
+  - `Assets/Prefabs/Prototype/Player.prefab` continua sendo o Bren com espada. Não foi alterado.
+  - `Assets/Prefabs/Characters/Bren/Bren_Initial.prefab` é uma variante dele. Troca o sprite e os quadros do `BrenSpriteAnimator` (Idle de 8 quadros a 7 FPS) e deixa o `PlayerCombat` desligado. Física, colliders e movimento são herdados sem mudança.
+- **Cena:** `Assets/Scenes/Prototypes/Prototype_02_Bren_Initial.unity` é uma cópia do ambiente do Prototype 01, sem os Ecos, com o Bren inicial.
+- **Ferramentas:** menu **NYMARA ▸ Bren** (`BrenPhaseSetup.cs`, `BrenArtPaths.cs`). O passe visual do Prototype 01 agora busca os quadros com espada em `Arua_Sword/` e não mexe na importação de `Initial/`.
+
 ## Passe visual provisório (art/prototype-01-visual-pass)
 Arte provisória ilustrada (não é pixel art), gerada por código para este protótipo. Não usa imagens de terceiros. Só muda o visual: movimento, combate, IA, vida, dano, colliders e posições não foram alterados.
 
