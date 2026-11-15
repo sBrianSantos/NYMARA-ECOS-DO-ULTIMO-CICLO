@@ -53,6 +53,7 @@ namespace Nymara.Player
     /// - No chão, o ataque é decidido ao SOLTAR o botão: segurou menos que chargeThreshold → próximo golpe do combo;
     ///   segurou o suficiente → ataque carregado. Assim um único pressionar nunca gera dois ataques.
     /// - No ar, o ataque aéreo sai ao PRESSIONAR (sem carga), limitado por maxAerialAttacksPerAirtime até tocar o chão.
+    ///   É um mergulho vertical: o controlador desce em linha reta e a hitbox abaixo do corpo fica ativa durante o mergulho.
     /// - Dash cancela qualquer ataque/carga. Sofrer impacto também cancela.
     /// - Pular cancela a carga; durante startup/ativo de golpe no chão o pulo fica bloqueado, na recuperação é liberado.
     /// - Soltar o botão durante um golpe fica guardado (buffer) e executa o próximo golpe quando o atual termina.
@@ -94,17 +95,20 @@ namespace Nymara.Player
             knockbackSpeed = 9f, knockbackLift = 3f, staggerTime = 0.6f, hitStop = 0.09f, debugColor = new Color(1f, 0.35f, 0.15f, 0.55f)
         };
 
-        [Header("Ataque aéreo (descendente)")]
+        [Header("Ataque aéreo (mergulho vertical)")]
+        [Tooltip("A hitbox fica ativa no mínimo por 'active' e, além disso, enquanto o mergulho durar.")]
         [SerializeField] private AttackDefinition aerialAttack = new AttackDefinition
         {
             name = "Aéreo", damage = 1.5f, startup = 0.04f, active = 0.14f, recovery = 0.14f,
-            hitboxOffset = new Vector2(0.6f, -0.6f), hitboxSize = new Vector2(1.4f, 1.3f), lungeSpeed = 0f, lungeDuration = 0f,
+            hitboxOffset = new Vector2(0f, -1.0f), hitboxSize = new Vector2(1.1f, 1.1f), lungeSpeed = 0f, lungeDuration = 0f,
             knockbackSpeed = 4f, knockbackLift = 0f, staggerTime = 0.3f, hitStop = 0.04f, debugColor = new Color(0.4f, 0.8f, 1f, 0.5f)
         };
         [SerializeField, Min(1)] private int maxAerialAttacksPerAirtime = 1;
-        [Tooltip("Velocidade máxima de queda durante o ataque aéreo (s). Negativo = sem limite.")]
-        [SerializeField] private float aerialFallSpeedClamp = 4f;
-        [Tooltip("Controle horizontal durante o ataque aéreo.")]
+        [Tooltip("Velocidade da descida do mergulho (u/s). Deve ficar abaixo de maxFallSpeed do controlador.")]
+        [SerializeField, Min(0.1f)] private float aerialDiveSpeed = 16f;
+        [Tooltip("Duração máxima do mergulho (s); termina antes ao tocar o chão.")]
+        [SerializeField, Min(0.01f)] private float aerialDiveMaxDuration = 0.4f;
+        [Tooltip("Controle horizontal na recuperação do ataque aéreo (durante o mergulho não há deslocamento horizontal).")]
         [SerializeField, Range(0f, 1f)] private float aerialMoveMultiplier = 0.7f;
 
         private CombatState state = CombatState.Idle;
@@ -293,6 +297,8 @@ namespace Nymara.Player
                     break;
 
                 case CombatState.Active:
+                    // Mergulho: a hitbox continua ativa até o mergulho terminar (chão ou tempo máximo).
+                    if (currentKind == AttackKind.Aerial && controller.IsDiving) return;
                     state = CombatState.Recovery;
                     phaseTimeLeft = currentAttack.recovery;
                     if (currentHitbox != null) currentHitbox.Deactivate();
@@ -341,8 +347,9 @@ namespace Nymara.Player
             if (kind == AttackKind.Aerial)
             {
                 aerialAttacksUsed++;
+                controller.ClearHorizontalImpulse();
                 controller.SetHorizontalControl(aerialMoveMultiplier);
-                controller.SetFallSpeedClamp(aerialFallSpeedClamp);
+                controller.RequestVerticalDive(aerialDiveSpeed, aerialDiveMaxDuration);
             }
             else
             {
@@ -421,6 +428,7 @@ namespace Nymara.Player
             if (controller != null)
             {
                 controller.ClearHorizontalImpulse();
+                controller.ClearVerticalDive();
                 controller.SetHorizontalControl(1f);
                 controller.SetJumpBlocked(false);
                 controller.SetFacingLocked(false);

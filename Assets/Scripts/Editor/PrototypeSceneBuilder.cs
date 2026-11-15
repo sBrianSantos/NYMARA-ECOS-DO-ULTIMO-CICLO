@@ -209,6 +209,7 @@ namespace Nymara.EditorTools
                 so.FindProperty("stability").objectReferenceValue = stability;
                 so.FindProperty("groundMask").intValue = 1 << groundLayer;
                 so.FindProperty("dashBlockMask").intValue = (1 << groundLayer) | (1 << enemyLayer);
+                so.FindProperty("dashPassThroughMask").intValue = 1 << enemyLayer;
             });
 
             var combat = root.AddComponent<PlayerCombat>();

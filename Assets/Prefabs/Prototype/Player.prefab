@@ -574,6 +574,9 @@ MonoBehaviour:
   dashBlockMask:
     serializedVersion: 2
     m_Bits: 1280
+  dashPassThroughMask:
+    serializedVersion: 2
+    m_Bits: 1024
   maxRunSpeed: 6
   groundAcceleration: 70
   groundDeceleration: 80
@@ -587,7 +590,7 @@ MonoBehaviour:
   coyoteTime: 0.1
   jumpBufferTime: 0.1
   dashSpeed: 14
-  dashDuration: 0.16
+  dashDuration: 0.18
   dashCooldown: 0.2
   maxDashCharges: 1
   postDashSpeedKeep: 0.45
@@ -683,8 +686,8 @@ MonoBehaviour:
     startup: 0.04
     active: 0.14
     recovery: 0.14
-    hitboxOffset: {x: 0.6, y: -0.6}
-    hitboxSize: {x: 1.4, y: 1.3}
+    hitboxOffset: {x: 0, y: -1}
+    hitboxSize: {x: 1.1, y: 1.1}
     lungeSpeed: 0
     lungeDuration: 0
     knockbackSpeed: 4
@@ -693,7 +696,8 @@ MonoBehaviour:
     hitStop: 0.04
     debugColor: {r: 0.4, g: 0.8, b: 1, a: 0.5}
   maxAerialAttacksPerAirtime: 1
-  aerialFallSpeedClamp: 4
+  aerialDiveSpeed: 16
+  aerialDiveMaxDuration: 0.4
   aerialMoveMultiplier: 0.7
 --- !u!114 &3843627359067566261
 MonoBehaviour:

@@ -32,8 +32,11 @@ namespace Nymara.Player
         [SerializeField] private LayerMask groundMask;
         [SerializeField, Min(0.01f)] private float groundCheckDepth = 0.08f;
         [SerializeField, Range(0.3f, 1f)] private float groundCheckWidthFactor = 0.85f;
-        [Tooltip("Layers que interrompem o dash (paredes e corpos de inimigos). Vazio = usa groundMask.")]
+        [Tooltip("Layers que interrompem o dash e o avanço dos golpes (paredes e corpos de inimigos). Vazio = usa groundMask.")]
         [SerializeField] private LayerMask dashBlockMask;
+        [Tooltip("Layers que o dash atravessa (corpos de inimigos). Só durante o dash: a colisão com essas layers é ignorada " +
+                 "pelo collider do protagonista e elas deixam de interromper o dash. Paredes e chão continuam bloqueando.")]
+        [SerializeField] private LayerMask dashPassThroughMask;
 
         [Header("Movimento horizontal")]
         [SerializeField, Min(0f)] private float maxRunSpeed = 6f;
@@ -54,7 +57,8 @@ namespace Nymara.Player
 
         [Header("Dash")]
         [SerializeField, Min(0f)] private float dashSpeed = 14f;
-        [SerializeField, Min(0.01f)] private float dashDuration = 0.16f;
+        [Tooltip("Duração do dash (s). Arredondada para passos de física de 0,02 s.")]
+        [SerializeField, Min(0.01f)] private float dashDuration = 0.18f;
         [SerializeField, Min(0f)] private float dashCooldown = 0.2f;
         [Tooltip("Cargas de dash; restauradas ao tocar o chão (hipótese inicial: 1).")]
         [SerializeField, Min(1)] private int maxDashCharges = 1;
@@ -62,6 +66,9 @@ namespace Nymara.Player
         [SerializeField, Range(0f, 1f)] private float postDashSpeedKeep = 0.45f;
         [Tooltip("Padrão do MVP: sem invulnerabilidade durante o dash.")]
         [SerializeField] private bool dashGrantsInvulnerability = false;
+        [Tooltip("Tempo máximo (s) que a passagem por inimigos continua depois do dash, enquanto o protagonista ainda " +
+                 "estiver sobreposto a um deles. Evita que a física o expulse de dentro do inimigo ao fim do dash.")]
+        [SerializeField, Min(0f)] private float dashPassThroughReleaseTimeout = 0.3f;
 
         [Header("Impulso de ataque")]
         [Tooltip("Fração da velocidade do impulso mantida quando ele termina ou é cancelado (0 = para na hora).")]
@@ -86,6 +93,14 @@ namespace Nymara.Player
         private int dashCharges;
         private int dashDirection = 1;
 
+        private float diveSpeed;
+        private float diveTimeLeft;
+
+        private bool passThroughActive;
+        private LayerMask colliderExcludeBeforeDash;
+        private float passThroughReleaseDeadline;
+        private readonly System.Collections.Generic.List<Collider2D> passThroughOverlap = new System.Collections.Generic.List<Collider2D>(2);
+
         private float stunTimeLeft;
         private bool controlEnabled = true;
 
@@ -102,6 +117,10 @@ namespace Nymara.Player
         public int Facing { get; private set; } = 1;
         public bool IsGrounded => grounded;
         public bool IsDashing => dashTimeLeft > 0f;
+        /// <summary>True durante o mergulho vertical do ataque aéreo.</summary>
+        public bool IsDiving => diveTimeLeft > 0f;
+        /// <summary>True enquanto o corpo do protagonista ignora a colisão com inimigos (dash).</summary>
+        public bool IsPassingThroughEnemies => passThroughActive;
         public bool IsStunned => stunTimeLeft > 0f;
         public bool ControlEnabled => controlEnabled;
         public int DashCharges => dashCharges;
@@ -164,6 +183,8 @@ namespace Nymara.Player
                 input.DashPressed -= OnDashPressed;
             }
             if (stability != null) stability.Damaged -= OnDamaged;
+            // Saída inesperada do estado: nunca deixar o corpo atravessando inimigos.
+            EndPassThrough();
         }
 
         // ------------------------------------------------------------------ input
@@ -192,6 +213,8 @@ namespace Nymara.Player
             isRisingFromJump = false;
             jumpCutPending = false;
             DropHorizontalImpulse();
+            diveTimeLeft = 0f;
+            BeginPassThrough();
             rb.gravityScale = 0f;
             if (dashGrantsInvulnerability && stability != null) stability.SetForcedInvulnerable(true);
             DashStarted?.Invoke();
@@ -227,11 +250,13 @@ namespace Nymara.Player
             {
                 dashTimeLeft -= dt;
                 v = new Vector2(dashDirection * dashSpeed, 0f);
-                if (dashTimeLeft <= 0f || IsBlockedAhead(dashDirection, dashSpeed * dt))
+                if (dashTimeLeft <= 0f || IsBlockedAhead(dashDirection, dashSpeed * dt, DashSolidMask))
                     v = EndDash(v);
                 rb.linearVelocity = v;
                 return;
             }
+
+            UpdatePassThroughRelease();
 
             if (grounded && dashCharges < maxDashCharges)
                 dashCharges = maxDashCharges;
@@ -243,6 +268,23 @@ namespace Nymara.Player
                 ApplyGravity(ref v);
                 rb.linearVelocity = v;
                 return;
+            }
+
+            // Mergulho do ataque aéreo: descida vertical com velocidade fixa, sem deslocamento horizontal.
+            if (diveTimeLeft > 0f)
+            {
+                if (grounded)
+                {
+                    diveTimeLeft = 0f; // tocou o chão: o mergulho termina e o movimento normal volta
+                }
+                else
+                {
+                    diveTimeLeft -= dt;
+                    if (diveTimeLeft <= ImpulseTimeEpsilon) diveTimeLeft = 0f;
+                    rb.gravityScale = baseGravityScale;
+                    rb.linearVelocity = new Vector2(0f, -diveSpeed);
+                    return;
+                }
             }
 
             // Horizontal
@@ -258,7 +300,7 @@ namespace Nymara.Player
                 // Impulso de ataque: mantém a velocidade pedida pela duração configurada,
                 // sem passar pela aceleração/desaceleração normal (que o anularia em 1-2 passos).
                 int impulseDirection = impulseVelocityX >= 0f ? 1 : -1;
-                if (attackImpulseStopsAtObstacles && IsBlockedAhead(impulseDirection, Mathf.Abs(impulseVelocityX) * dt))
+                if (attackImpulseStopsAtObstacles && IsBlockedAhead(impulseDirection, Mathf.Abs(impulseVelocityX) * dt, BlockMask))
                 {
                     v.x = 0f;
                     impulseTimeLeft = 0f;
@@ -330,7 +372,8 @@ namespace Nymara.Player
             rb.gravityScale = baseGravityScale;
             if (dashGrantsInvulnerability && stability != null) stability.SetForcedInvulnerable(false);
             v.x = dashDirection * dashSpeed * postDashSpeedKeep;
-            if (IsBlockedAhead(dashDirection, 0.02f)) v.x = 0f;
+            if (IsBlockedAhead(dashDirection, 0.02f, DashSolidMask)) v.x = 0f;
+            RequestPassThroughRelease();
             DashEnded?.Invoke();
             return v;
         }
@@ -355,10 +398,15 @@ namespace Nymara.Player
             }
         }
 
-        private bool IsBlockedAhead(int direction, float distance)
+        /// <summary>Máscara que interrompe o avanço dos golpes (cenário e inimigos).</summary>
+        private int BlockMask => dashBlockMask.value != 0 ? dashBlockMask.value : groundMask.value;
+
+        /// <summary>Máscara que interrompe o dash: a mesma, menos as layers que o dash atravessa.</summary>
+        private int DashSolidMask => BlockMask & ~dashPassThroughMask.value;
+
+        private bool IsBlockedAhead(int direction, float distance, int mask)
         {
-            LayerMask mask = dashBlockMask.value != 0 ? dashBlockMask : groundMask;
-            if (bodyCollider == null) return false;
+            if (bodyCollider == null || mask == 0) return false;
             Bounds b = bodyCollider.bounds;
             // Caixa um pouco menor que o corpo, para não detectar o próprio chão.
             Vector2 size = new Vector2(b.size.x * 0.5f, b.size.y * 0.7f);
@@ -366,6 +414,49 @@ namespace Nymara.Player
             float castDistance = b.extents.x * 0.5f + distance;
             // O próprio corpo está na layer Player, fora da máscara.
             return Physics2D.BoxCast(origin, size, 0f, new Vector2(direction, 0f), castDistance, mask).collider != null;
+        }
+
+        // ------------------------------------------------------------------ passagem por inimigos (dash)
+
+        /// <summary>Começa a ignorar a colisão do corpo com as layers de passagem (só durante o dash).</summary>
+        private void BeginPassThrough()
+        {
+            if (bodyCollider == null || dashPassThroughMask.value == 0) return;
+            if (!passThroughActive)
+            {
+                colliderExcludeBeforeDash = bodyCollider.excludeLayers;
+                passThroughActive = true;
+            }
+            bodyCollider.excludeLayers = colliderExcludeBeforeDash.value | dashPassThroughMask.value;
+            passThroughReleaseDeadline = float.PositiveInfinity;
+        }
+
+        /// <summary>Fim do dash: a colisão volta assim que o corpo não estiver mais dentro de um inimigo (ou no tempo limite).</summary>
+        private void RequestPassThroughRelease()
+        {
+            if (!passThroughActive) return;
+            passThroughReleaseDeadline = Time.time + dashPassThroughReleaseTimeout;
+            UpdatePassThroughRelease();
+        }
+
+        private void UpdatePassThroughRelease()
+        {
+            if (!passThroughActive || IsDashing) return;
+            bool stillInside = false;
+            if (Time.time < passThroughReleaseDeadline)
+            {
+                var filter = new ContactFilter2D { useLayerMask = true, layerMask = dashPassThroughMask, useTriggers = false };
+                stillInside = bodyCollider.Overlap(filter, passThroughOverlap) > 0;
+            }
+            if (!stillInside) EndPassThrough();
+        }
+
+        /// <summary>Restaura imediatamente a colisão normal do corpo.</summary>
+        private void EndPassThrough()
+        {
+            if (!passThroughActive) return;
+            passThroughActive = false;
+            if (bodyCollider != null) bodyCollider.excludeLayers = colliderExcludeBeforeDash;
         }
 
         private void ApplyFacing(int direction)
@@ -409,6 +500,25 @@ namespace Nymara.Player
             impulseTimeLeft = 0f;
         }
 
+        /// <summary>
+        /// Pede o mergulho vertical do ataque aéreo: o protagonista desce a <paramref name="speed"/> u/s, sem deslocamento
+        /// horizontal, até tocar o chão ou passar <paramref name="maxDuration"/> s. Depois a gravidade e o controle normais voltam.
+        /// Ignorado no chão, durante dash, atordoamento ou sem controle.
+        /// </summary>
+        public void RequestVerticalDive(float speed, float maxDuration)
+        {
+            if (!controlEnabled || IsDashing || IsStunned || grounded) return;
+            if (speed <= 0f || maxDuration <= 0f) return;
+            DropHorizontalImpulse();
+            isRisingFromJump = false;
+            jumpCutPending = false;
+            diveSpeed = speed;
+            diveTimeLeft = maxDuration;
+        }
+
+        /// <summary>Encerra o mergulho; a velocidade de queda atual segue sob a gravidade normal.</summary>
+        public void ClearVerticalDive() => diveTimeLeft = 0f;
+
         /// <summary>Descarta o impulso sem tocar na velocidade (quando dash, recuo ou teleporte assumem o movimento).</summary>
         private void DropHorizontalImpulse()
         {
@@ -426,6 +536,7 @@ namespace Nymara.Player
             if (IsDashing) EndDash(rb.linearVelocity);
             isRisingFromJump = false;
             DropHorizontalImpulse();
+            diveTimeLeft = 0f;
             rb.linearVelocity = velocity;
             stunTimeLeft = Mathf.Max(stunTimeLeft, stunDuration);
         }
@@ -437,6 +548,8 @@ namespace Nymara.Player
             {
                 if (IsDashing) EndDash(rb.linearVelocity);
                 DropHorizontalImpulse();
+                diveTimeLeft = 0f;
+                EndPassThrough();
                 rb.linearVelocity = Vector2.zero;
                 lastJumpPressedTime = float.NegativeInfinity;
             }
@@ -457,6 +570,8 @@ namespace Nymara.Player
             facingLocked = false;
             fallSpeedClamp = -1f;
             DropHorizontalImpulse();
+            diveTimeLeft = 0f;
+            EndPassThrough();
         }
 
         private void OnDrawGizmosSelected()
