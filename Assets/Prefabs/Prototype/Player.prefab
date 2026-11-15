@@ -16,7 +16,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &8561296829254313266
 Transform:
   m_ObjectHideFlags: 0
@@ -118,8 +118,8 @@ Transform:
   m_GameObject: {fileID: 3983310919534156067}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.8, y: 1.6, z: 1}
+  m_LocalPosition: {x: 0, y: -0.8, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 6251290532056652056}
@@ -173,8 +173,8 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 10
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 21300000, guid: e5d39b3d0688b8d4a85ae0670986cc35, type: 3}
-  m_Color: {r: 0.55, g: 0.85, b: 0.95, a: 1}
+  m_Sprite: {fileID: 21300000, guid: 7ab6607cde2ed2a4d90fd138b2994a15, type: 3}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -428,6 +428,8 @@ GameObject:
   - component: {fileID: 4994296501105319115}
   - component: {fileID: 3843627359067566261}
   - component: {fileID: 5021583031591243472}
+  - component: {fileID: 6258866405553226344}
+  - component: {fileID: 229620851176013943}
   m_Layer: 9
   m_Name: Player
   m_TagString: Player
@@ -595,6 +597,7 @@ MonoBehaviour:
   maxDashCharges: 1
   postDashSpeedKeep: 0.45
   dashGrantsInvulnerability: 0
+  dashPassThroughReleaseTimeout: 0.3
   attackImpulseEndSpeedKeep: 0
   attackImpulseStopsAtObstacles: 1
   defaultHurtKnockback: 6
@@ -742,15 +745,100 @@ MonoBehaviour:
   combat: {fileID: 4994296501105319115}
   stability: {fileID: 3109433073778019037}
   respawn: {fileID: 3843627359067566261}
-  baseColor: {r: 0.55, g: 0.85, b: 0.95, a: 1}
-  dashColor: {r: 0.85, g: 1, b: 1, a: 1}
-  chargeColor: {r: 1, g: 0.75, b: 0.25, a: 1}
-  fullChargeColor: {r: 1, g: 0.95, b: 0.6, a: 1}
-  attackColor: {r: 0.75, g: 0.95, b: 1, a: 1}
-  hurtColor: {r: 1, g: 0.45, b: 0.45, a: 1}
-  absorbedColor: {r: 0.45, g: 0.25, b: 0.7, a: 1}
+  baseColor: {r: 1, g: 1, b: 1, a: 1}
+  dashColor: {r: 0.86, g: 0.94, b: 1, a: 1}
+  chargeColor: {r: 1, g: 0.9, b: 0.72, a: 1}
+  fullChargeColor: {r: 1, g: 0.97, b: 0.86, a: 1}
+  attackColor: {r: 1, g: 1, b: 1, a: 1}
+  hurtColor: {r: 1, g: 0.62, b: 0.58, a: 1}
+  absorbedColor: {r: 0.62, g: 0.48, b: 0.86, a: 1}
   fullChargePulseSpeed: 18
   invulnerableBlinkSpeed: 20
+--- !u!114 &6258866405553226344
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7812541583500846022}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d2702fae299c56f40a1645e6e63926a6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Nymara.Visual.BrenSpriteAnimator
+  body: {fileID: 5890144349870651777}
+  controller: {fileID: 52018246918134201}
+  combat: {fileID: 4994296501105319115}
+  respawn: {fileID: 3843627359067566261}
+  idle:
+  - {fileID: 21300000, guid: 7ab6607cde2ed2a4d90fd138b2994a15, type: 3}
+  - {fileID: 21300000, guid: 117a8e63224a7274e9cd953060d12dff, type: 3}
+  run:
+  - {fileID: 21300000, guid: b9c5fedbe64ff084f9cd7a83a8ec753e, type: 3}
+  - {fileID: 21300000, guid: 551a4ae2f63b0ec4d85b2228687afa8a, type: 3}
+  - {fileID: 21300000, guid: 367c9584003c93a459d8070f9a340002, type: 3}
+  - {fileID: 21300000, guid: 931b5eeaa47d3b64d8191e1e5158ba89, type: 3}
+  - {fileID: 21300000, guid: 387dad91ea3b1f8468dc8d69cf5ae333, type: 3}
+  - {fileID: 21300000, guid: 1b0ba7820f0618944a2836002d10f317, type: 3}
+  jump: {fileID: 21300000, guid: a60ae7184096a7344bfe247e0d253def, type: 3}
+  apex: {fileID: 21300000, guid: b6c7736994608904da132051e318fc47, type: 3}
+  fall: {fileID: 21300000, guid: 07a298a4ac961834c8ce49294cfceb45, type: 3}
+  land: {fileID: 21300000, guid: 5a293e8c9f411c74eaa78a1c789a115d, type: 3}
+  dash: {fileID: 21300000, guid: 435fcad966b50c94fb7be67e6ab554d8, type: 3}
+  hurt: {fileID: 21300000, guid: 3de43d78f636a2a4fb7f21ef7a113ee3, type: 3}
+  atk1Wind: {fileID: 21300000, guid: e470aefbc9ba6c345a89d12d16e32452, type: 3}
+  atk1Hit: {fileID: 21300000, guid: 0d25c4b6ffadebb4486771e642dc921b, type: 3}
+  atk1Rec: {fileID: 21300000, guid: 501fe5f77bb4a704e99526af8b2ed56a, type: 3}
+  atk2Wind: {fileID: 21300000, guid: 5e943975182c5f648b501514dea547af, type: 3}
+  atk2Hit: {fileID: 21300000, guid: 10c1cd3aa526518448b7fe54802a9e09, type: 3}
+  atk2Rec: {fileID: 21300000, guid: e37744f2e99946f4689285d7027c4137, type: 3}
+  atk3Wind: {fileID: 21300000, guid: fb30286df15b6b24e93e1f7fddf23014, type: 3}
+  atk3Hit: {fileID: 21300000, guid: 1fc71943cc3bb124a81ea4c1eacb4eb6, type: 3}
+  atk3Rec: {fileID: 21300000, guid: b65113d240b65aa4aac64acfddafe144, type: 3}
+  charge: {fileID: 21300000, guid: 374249d64abb1584199d79e4d27fe61e, type: 3}
+  chargeFull: {fileID: 21300000, guid: a7cd13110ad9c9044ae7111b8dc66521, type: 3}
+  chargedHit: {fileID: 21300000, guid: 98c9b07034b1ff04eaeec7c818476af6, type: 3}
+  diveWind: {fileID: 21300000, guid: bdaaeeb64fe751a41bdf0ad14af06ae2, type: 3}
+  dive: {fileID: 21300000, guid: 57967294a8e39d24e9933ba0192ee5b5, type: 3}
+  idleFrameTime: 0.55
+  runCycleDistance: 2.4
+  landPoseTime: 0.09
+  apexBand: 2.2
+  landSquash: {x: 1.12, y: 0.88}
+  jumpStretch: {x: 0.9, y: 1.1}
+  dashStretch: {x: 1.08, y: 0.94}
+  squashRecover: 14
+--- !u!114 &229620851176013943
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7812541583500846022}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e3e4c9b2b7854894abe2460b5899ed39, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Nymara.Visual.PlayerVfx
+  controller: {fileID: 52018246918134201}
+  combat: {fileID: 4994296501105319115}
+  body: {fileID: 5890144349870651777}
+  fxMaterial: {fileID: 2100000, guid: 9dfc825aed78fcd4ba02077103263b40, type: 2}
+  dust: {fileID: 21300000, guid: 4c79b6b90f6b1b247b5d2e130b924700, type: 3}
+  slash: {fileID: 21300000, guid: 529bd891b70171148a96e8d83eacc4a1, type: 3}
+  slashHeavy: {fileID: 21300000, guid: 29c01ea9eb55dad41a95b0ac74d003cb, type: 3}
+  spark: {fileID: 21300000, guid: 2fa48c19b7ec6344c982646724e52dfa, type: 3}
+  glow: {fileID: 21300000, guid: 28fa6aae45153834f81d6b7ec9bb47fd, type: 3}
+  ring: {fileID: 21300000, guid: 3d2c668a5d6a2814f93d26e0ad495174, type: 3}
+  groundBurst: {fileID: 21300000, guid: 1ea3c6caa7a599444a0802de71470441, type: 3}
+  fioColor: {r: 1, g: 0.95, b: 0.8, a: 1}
+  chargedColor: {r: 1, g: 0.88, b: 0.6, a: 1}
+  dustColor: {r: 0.86, g: 0.82, b: 0.72, a: 0.75}
+  ghostColor: {r: 0.82, g: 0.9, b: 1, a: 0.42}
+  sparkColor: {r: 1, g: 0.96, b: 0.82, a: 1}
+  feetOffset: -0.8
+  chargeGlowLocal: {x: -0.6, y: 0.25}
+  ghostInterval: 0.035
 --- !u!1 &8389318638974378827
 GameObject:
   m_ObjectHideFlags: 0

@@ -28,6 +28,29 @@ No ar, o ataque sai ao **pressionar** e é um **mergulho vertical**: o protagoni
 O dash cancela golpes e cargas e **atravessa os Ecos** (não atravessa paredes, chão nem obstáculos). Pular cancela a carga. Sofrer impacto cancela o golpe.
 Os bindings ficam em `Assets/Settings/Input/NymaraPrototype.inputactions`. O `InputSystem_Actions` do template não foi alterado.
 
+## Passe visual provisório (art/prototype-01-visual-pass)
+Arte provisória ilustrada (não é pixel art), gerada por código para este protótipo. Não usa imagens de terceiros. Só muda o visual: movimento, combate, IA, vida, dano, colliders e posições não foram alterados.
+
+- **Bren:** sprites em `Assets/Art/Prototype/Bren`, todos olhando para a direita (o flip vem do `PlayerController2D`).
+  - São 28 quadros: parado, corrida (6), pulo, ápice, queda, pouso, dash, dano, os 3 golpes (preparação, golpe e recuperação), carga, carga cheia, golpe carregado, preparação do mergulho e mergulho.
+  - `BrenSpriteAnimator` escolhe o quadro lendo o estado do controller e do combate. Não usa Animator.
+  - O Fio do Limiar só aparece durante os ataques e a carga.
+- **Ecos:** em `Assets/Art/Prototype/Ecos` há corpo, camada de brilho das marcas do Intervalo e silhueta de clarão para cada um dos 7 quadros.
+  - `EcoVisual` mostra o aviso do golpe (o brilho esquenta e pulsa), o arco do golpe, o clarão branco ao receber dano e o balanço ao ficar atordoado.
+  - Também anima os fragmentos flutuantes e faz um anel de luz na libertação.
+- **Cenário:** a raiz `ForestArt` da cena tem fundo em 4 camadas com parallax (`ParallaxLayer`), plantas em primeiro plano só abaixo do chão e arte desenhada exatamente nos limites de cada collider.
+  - Os blocos originais continuam com o mesmo `BoxCollider2D`, Transform e layer; só o `SpriteRenderer` foi desligado.
+- **Efeitos:** `PlayerVfx` e `SimpleFx` usam apenas sprites, sem sistema de partículas.
+  - Bren: poeira no pulo, no pouso e no dash, rastro do dash e do mergulho, arcos dos golpes, faíscas de impacto, brilho da carga e impacto do mergulho.
+- **Cores dos estados:** viraram tons sutis, para não tingir a arte.
+  - `PlayerVisualFeedback`: base branca.
+  - `TestEnemyController`: base lilás mais clara.
+- **Reaplicar:** menu **NYMARA ▸ Prototype ▸ Aplicar Passe Visual (Prototype 01)**. Esse menu é obrigatório depois de reconstruir a cena pelo Build, porque o builder recria os quadrados graybox.
+- **Arquivos:**
+  - Scripts em `Assets/Scripts/Visual/*` e `Assets/Scripts/Editor/PrototypeVisualPass.cs`.
+  - Arte em `Assets/Art/Prototype/{Bren,Ecos,Forest,FX}`.
+  - O gerador da arte (Python) não está no projeto.
+
 ## Refinamento: mergulho aéreo e dash (fix/prototype-01-air-dash-refinement)
 
 ### Mergulho vertical (ataque aéreo)
