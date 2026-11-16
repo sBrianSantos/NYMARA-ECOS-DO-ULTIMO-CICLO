@@ -25,7 +25,6 @@ namespace Nymara.EditorTools
         public const string InitialPrefabPath = "Assets/Prefabs/Characters/Bren/Bren_Initial.prefab";
         public const string Proto01Path = "Assets/Scenes/Prototypes/Prototype_01_MovementCombat.unity";
         public const string Proto02Path = "Assets/Scenes/Prototypes/Prototype_02_Bren_Initial.unity";
-        private const string IdleDir = BrenArtPaths.Root + "/Initial/Idle";
 
         /// <summary>Velocidade do Idle inicial (quadros por segundo); pedido: testar entre 6 e 8.</summary>
         public const float InitialIdleFps = 7f;
@@ -37,6 +36,7 @@ namespace Nymara.EditorTools
             OrganizeFolders();
             ConfigureInitialIdleImport();
             CreateOrUpdateInitialPrefab();
+            ArchiveLegacyIdle();
             CreatePrototype02();
         }
 
@@ -73,46 +73,59 @@ namespace Nymara.EditorTools
             AssetDatabase.CreateFolder(parent, Path.GetFileName(path));
         }
 
-        // ------------------------------------------------------------------ 2. importação do Idle inicial
-        [MenuItem("NYMARA/Bren/2. Configurar importação do Idle inicial", priority = 42)]
+        // ------------------------------------------------------------------ 2. importação do Idle inicial (direcional)
+        /// <summary>
+        /// PPU do Idle direcional: o personagem ocupa ~663 px (alfa &gt; 0,5) dos 720 px de altura do quadro.
+        /// 663 / 394 ≈ 1,68 u, a mesma altura visual do Idle anterior (~538 px / 320 PPU).
+        /// </summary>
+        public const float InitialIdlePpu = 394f;
+        /// <summary>Pés: última linha com alfa em 703 de 720 → 16 px de margem inferior (mesmo critério do Idle anterior).</summary>
+        public static readonly Vector2 InitialIdlePivot = new Vector2(0.5f, 16f / 720f);
+
+        [MenuItem("NYMARA/Bren/2. Configurar importação do Idle inicial (Right e Left)", priority = 42)]
         public static void ConfigureInitialIdleImport()
         {
-            foreach (var name in BrenArtPaths.InitialIdle)
-            {
-                string path = $"{IdleDir}/{name}.png";
-                var ti = AssetImporter.GetAtPath(path) as TextureImporter;
-                if (ti == null) { Debug.LogError($"[Bren] Quadro não encontrado: {path}"); continue; }
-                ti.textureType = TextureImporterType.Sprite;
-                ti.spriteImportMode = SpriteImportMode.Single;      // retângulo inteiro 224x600: sem tremulação entre quadros
-                ti.spritePixelsPerUnit = 320f;                       // ~552 px de personagem ≈ 1,72 u (mesma altura do Bren atual)
-                ti.mipmapEnabled = false;
-                ti.filterMode = FilterMode.Bilinear;
-                ti.wrapMode = TextureWrapMode.Clamp;
-                ti.alphaIsTransparency = true;
-                ti.maxTextureSize = 2048;
-                ti.textureCompression = TextureImporterCompression.Uncompressed;
-                var s = new TextureImporterSettings();
-                ti.ReadTextureSettings(s);
-                s.spriteAlignment = (int)SpriteAlignment.Custom;
-                s.spritePivot = new Vector2(0.5f, 8f / 600f);         // pés (linha 592 de 600) no pivô
-                s.spriteMeshType = SpriteMeshType.FullRect;
-                s.spriteExtrude = 1;
-                ti.SetTextureSettings(s);
-                ti.SaveAndReimport();
-            }
-            Debug.Log("[Bren] Idle inicial: 8 quadros como Sprite Single, PPU 320, pivô nos pés, bilinear, sem compressão.");
+            int n = 0;
+            for (int i = 1; i <= BrenArtPaths.InitialIdleFrames; i++)
+                foreach (var path in new[] { BrenArtPaths.InitialIdleRight(i), BrenArtPaths.InitialIdleLeft(i) })
+                {
+                    var ti = AssetImporter.GetAtPath(path) as TextureImporter;
+                    if (ti == null) { Debug.LogError($"[Bren] Quadro não encontrado: {path}"); continue; }
+                    ti.textureType = TextureImporterType.Sprite;
+                    ti.spriteImportMode = SpriteImportMode.Single;      // quadro inteiro 256x720: sem tremulação por recorte
+                    ti.spritePixelsPerUnit = InitialIdlePpu;
+                    ti.mipmapEnabled = false;
+                    ti.filterMode = FilterMode.Bilinear;
+                    ti.wrapMode = TextureWrapMode.Clamp;
+                    ti.alphaIsTransparency = true;
+                    ti.maxTextureSize = 2048;
+                    ti.textureCompression = TextureImporterCompression.Uncompressed;
+                    var s = new TextureImporterSettings();
+                    ti.ReadTextureSettings(s);
+                    s.spriteAlignment = (int)SpriteAlignment.Custom;
+                    s.spritePivot = InitialIdlePivot;                   // mesmo pivô nas duas direções
+                    s.spriteMeshType = SpriteMeshType.FullRect;
+                    s.spriteExtrude = 1;
+                    ti.SetTextureSettings(s);
+                    ti.SaveAndReimport();
+                    n++;
+                }
+            Debug.Log($"[Bren] Idle inicial direcional: {n} quadros como Sprite Single, PPU {InitialIdlePpu}, pivô nos pés, bilinear, sem compressão.");
         }
 
-        private static Sprite[] LoadInitialIdle() =>
-            BrenArtPaths.InitialIdle.Select(n => AssetDatabase.LoadAssetAtPath<Sprite>($"{IdleDir}/{n}.png")).ToArray();
+        private static Sprite[] LoadIdle(bool left) =>
+            Enumerable.Range(1, BrenArtPaths.InitialIdleFrames)
+                .Select(i => AssetDatabase.LoadAssetAtPath<Sprite>(left ? BrenArtPaths.InitialIdleLeft(i) : BrenArtPaths.InitialIdleRight(i)))
+                .ToArray();
 
         // ------------------------------------------------------------------ 3. prefab variante
         [MenuItem("NYMARA/Bren/3. Criar ou atualizar prefab Bren_Initial", priority = 43)]
         public static void CreateOrUpdateInitialPrefab()
         {
             EnsureFolder("Assets/Prefabs/Characters/Bren");
-            var idle = LoadInitialIdle();
-            if (idle.Any(s => s == null)) { Debug.LogError("[Bren] Quadros de Idle ausentes; rode o passo 2."); return; }
+            var right = LoadIdle(false);
+            var left = LoadIdle(true);
+            if (right.Any(s => s == null) || left.Any(s => s == null)) { Debug.LogError("[Bren] Quadros de Idle Right/Left ausentes; rode o passo 2."); return; }
 
             if (AssetDatabase.LoadAssetAtPath<GameObject>(InitialPrefabPath) == null)
             {
@@ -122,7 +135,7 @@ namespace Nymara.EditorTools
                 {
                     var inst = (GameObject)PrefabUtility.InstantiatePrefab(basePrefab, preview);
                     inst.name = "Bren_Initial";
-                    ConfigureInitial(inst, idle);
+                    ConfigureInitial(inst, right, left);
                     PrefabUtility.SaveAsPrefabAsset(inst, InitialPrefabPath);   // instância de prefab salva = Prefab Variant
                 }
                 finally { EditorSceneManager.ClosePreviewScene(preview); }
@@ -130,24 +143,35 @@ namespace Nymara.EditorTools
             else
             {
                 var root = PrefabUtility.LoadPrefabContents(InitialPrefabPath);
-                try { ConfigureInitial(root, idle); PrefabUtility.SaveAsPrefabAsset(root, InitialPrefabPath); }
+                try { ConfigureInitial(root, right, left); PrefabUtility.SaveAsPrefabAsset(root, InitialPrefabPath); }
                 finally { PrefabUtility.UnloadPrefabContents(root); }
             }
-            Debug.Log($"[Bren] {InitialPrefabPath} pronto (variante de {SwordPrefabPath}).");
+            Debug.Log($"[Bren] {InitialPrefabPath} pronto (variante de {SwordPrefabPath}, Idle direcional).");
+        }
+
+        private static void SetArray(SerializedObject so, string prop, Sprite[] values)
+        {
+            var p = so.FindProperty(prop);
+            p.arraySize = values.Length;
+            for (int i = 0; i < values.Length; i++) p.GetArrayElementAtIndex(i).objectReferenceValue = values[i];
         }
 
         /// <summary>Overrides do Bren inicial sobre o prefab com espada. Só visuais/combate desligado; movimento e física herdados.</summary>
-        private static void ConfigureInitial(GameObject root, Sprite[] idle)
+        private static void ConfigureInitial(GameObject root, Sprite[] idleRight, Sprite[] idleLeft)
         {
             var body = root.transform.Find("VisualRoot/Body").GetComponent<SpriteRenderer>();
-            body.sprite = idle[0];
+            body.sprite = idleRight[0];
 
             var anim = new SerializedObject(root.GetComponent<BrenSpriteAnimator>());
-            var idleProp = anim.FindProperty("idle");
-            idleProp.arraySize = idle.Length;
-            for (int i = 0; i < idle.Length; i++) idleProp.GetArrayElementAtIndex(i).objectReferenceValue = idle[i];
-            anim.FindProperty("run").arraySize = 0;   // sem corrida própria ainda: o Idle continua aparecendo (sem misturar a arte da outra fase)
+            anim.FindProperty("directionalSprites").boolValue = true;   // sem espelhamento: quadros próprios por direção
+            SetArray(anim, "idle", idleRight);
+            SetArray(anim, "idleLeft", idleLeft);
+            // Sem arte própria ainda (Walk/Run/Jump/Fall/Land/Hurt): esses estados usam o Idle da direção atual.
+            // Nunca os quadros da fase com espada.
+            SetArray(anim, "run", new Sprite[0]);
+            SetArray(anim, "runLeft", new Sprite[0]);
             foreach (var f in new[] { "jump", "apex", "fall", "land", "dash", "hurt",
+                                      "jumpLeft", "apexLeft", "fallLeft", "landLeft", "dashLeft", "hurtLeft",
                                       "atk1Wind", "atk1Hit", "atk1Rec", "atk2Wind", "atk2Hit", "atk2Rec",
                                       "atk3Wind", "atk3Hit", "atk3Rec", "charge", "chargeFull", "chargedHit", "diveWind", "dive" })
                 anim.FindProperty(f).objectReferenceValue = null;
@@ -157,6 +181,32 @@ namespace Nymara.EditorTools
             // Fase sem arma: o combate fica desligado nesta variante (componente mantido por dependências de PlayerRespawn/HUD).
             var combat = root.GetComponent<PlayerCombat>();
             if (combat != null) combat.enabled = false;
+        }
+
+        // ------------------------------------------------------------------ 3b. arquivar o Idle anterior
+        [MenuItem("NYMARA/Bren/3b. Arquivar Idle antigo do Bren inicial (Legacy)", priority = 45)]
+        public static void ArchiveLegacyIdle()
+        {
+            EnsureFolder(BrenArtPaths.InitialIdleLegacyDir);
+            // Segurança: só move se nenhum prefab/cena ainda depender dos arquivos antigos.
+            var users = AssetDatabase.FindAssets("t:Prefab t:Scene", new[] { "Assets" }).Select(AssetDatabase.GUIDToAssetPath).ToArray();
+            int moved = 0;
+            foreach (var file in BrenArtPaths.InitialIdleLegacyFiles)
+            {
+                string src = $"{BrenArtPaths.InitialIdleDir}/{file}";
+                if (AssetDatabase.LoadMainAssetAtPath(src) == null) continue;   // já arquivado (idempotente)
+                var dependents = users.Where(u => AssetDatabase.GetDependencies(u, true).Contains(src)).ToArray();
+                if (dependents.Length > 0)
+                {
+                    Debug.LogWarning($"[Bren] {src} ainda é usado por {string.Join(", ", dependents)}; mantido no lugar.");
+                    continue;
+                }
+                string err = AssetDatabase.MoveAsset(src, $"{BrenArtPaths.InitialIdleLegacyDir}/{file}");
+                if (!string.IsNullOrEmpty(err)) Debug.LogError($"[Bren] Falha ao arquivar {src}: {err}");
+                else moved++;
+            }
+            AssetDatabase.SaveAssets();
+            Debug.Log($"[Bren] Idle antigo: {moved} arquivo(s) movidos para {BrenArtPaths.InitialIdleLegacyDir} (GUIDs preservados).");
         }
 
         // ------------------------------------------------------------------ 4. cena

@@ -30,12 +30,14 @@ Os bindings ficam em `Assets/Settings/Input/NymaraPrototype.inputactions`. O `In
 
 ## Fases visuais de Bren e Prototype 02 (feat/bren-initial-visual)
 - **Duas fases, pastas separadas** em `Assets/Art/Prototype/Bren`:
-  - `Initial/`: Bren antes da Espada de Arua, sem arma. Hoje só existe o Idle (8 quadros em `Initial/Idle`).
+  - `Initial/`: Bren antes da Espada de Arua, sem arma. Hoje só existe o Idle, direcional:
+    - `Initial/Idle/Right` e `Initial/Idle/Left`: 8 quadros cada, 256×720 px, PPU 394, pivô nos pés, sem espelhamento.
+    - `Initial/Idle/Legacy`: Idle anterior (não direcional), arquivado e sem referências.
   - `Arua_Sword/`: Bren com a espada, usado aqui no Prototype 01 (28 quadros provisórios em Idle, Run, Jump, Fall, Land, Dash, Hurt e `Combat/*`).
   - `Shared/`: referências, conceitos e paletas comuns às duas fases (vazia por enquanto).
 - **Prefabs:**
   - `Assets/Prefabs/Prototype/Player.prefab` continua sendo o Bren com espada. Não foi alterado.
-  - `Assets/Prefabs/Characters/Bren/Bren_Initial.prefab` é uma variante dele. Troca o sprite e os quadros do `BrenSpriteAnimator` (Idle de 8 quadros a 7 FPS) e deixa o `PlayerCombat` desligado. Física, colliders e movimento são herdados sem mudança.
+  - `Assets/Prefabs/Characters/Bren/Bren_Initial.prefab` é uma variante dele. Troca o sprite e os quadros do `BrenSpriteAnimator` (Idle Right e Idle Left, 8 quadros cada, a 7 FPS, com `directionalSprites` ligado) e deixa o `PlayerCombat` desligado. Com `directionalSprites` o corpo nunca é espelhado: o `BrenSpriteAnimator` compensa no transform visual do corpo o flip de escala feito pelo `PlayerController2D` e escolhe os quadros pela direção do `Facing`. Estados sem arte usam o Idle da direção atual. No Bren com espada a opção fica desligada e nada muda. Física, colliders e movimento são herdados sem mudança.
 - **Cena:** `Assets/Scenes/Prototypes/Prototype_02_Bren_Initial.unity` é uma cópia do ambiente do Prototype 01, sem os Ecos, com o Bren inicial.
 - **Ferramentas:** menu **NYMARA ▸ Bren** (`BrenPhaseSetup.cs`, `BrenArtPaths.cs`). O passe visual do Prototype 01 agora busca os quadros com espada em `Arua_Sword/` e não mexe na importação de `Initial/`.
 
