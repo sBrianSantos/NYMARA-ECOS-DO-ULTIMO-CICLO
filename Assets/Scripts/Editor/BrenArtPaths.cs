@@ -16,7 +16,7 @@ namespace Nymara.EditorTools
         public static readonly string[] Folders =
         {
             "Shared", "Shared/References", "Shared/Concepts", "Shared/Palettes",
-            "Initial", "Initial/Idle", "Initial/Idle/Right", "Initial/Idle/Left", "Initial/Idle/Legacy", "Initial/Walk", "Initial/Run", "Initial/Jump", "Initial/Fall", "Initial/Land", "Initial/Hurt",
+            "Initial", "Initial/Idle", "Initial/Idle/Right", "Initial/Idle/Left", "Initial/Walk", "Initial/Run", "Initial/Jump", "Initial/Fall", "Initial/Land", "Initial/Hurt",
             "Arua_Sword", "Arua_Sword/Idle", "Arua_Sword/Walk", "Arua_Sword/Run", "Arua_Sword/Jump", "Arua_Sword/Fall",
             "Arua_Sword/Land", "Arua_Sword/Dash", "Arua_Sword/Hurt", "Arua_Sword/Combat",
             "Arua_Sword/Combat/Attack_01", "Arua_Sword/Combat/Attack_02", "Arua_Sword/Combat/Attack_03",
@@ -46,17 +46,13 @@ namespace Nymara.EditorTools
 
         /// <summary>Idle do Bren inicial, sprites próprios por direção (sem espelhamento). Caminhos completos .png.</summary>
         public const string InitialIdleDir = Root + "/Initial/Idle";
-        public static string InitialIdleRight(int i) => $"{InitialIdleDir}/Right/Bren_Idle_Right_{i:00}.png";
-        public static string InitialIdleLeft(int i) => $"{InitialIdleDir}/Left/Bren_Idle_Left_{i:00}.png";
+        /// <summary>Idle Right definitivo: um spritesheet com os 8 quadros lado a lado (fatiado na importação).</summary>
+        public const string InitialIdleRightSheet = InitialIdleDir + "/Right/Bren_Idle_Right_Spritesheet.png";
+        public static string InitialIdleRightFrameName(int i) => $"Bren_Idle_Right_{i:00}";
+        /// <summary>Idle Left definitivo: spritesheet com os 8 quadros lado a lado, mesma grade do Right.</summary>
+        public const string InitialIdleLeftSheet = InitialIdleDir + "/Left/Spritesheet de Idle do Bren Initial - Left.png";
+        public static string InitialIdleLeftFrameName(int i) => $"Bren_Idle_Left_{i:00}";
         public const int InitialIdleFrames = 8;
 
-        /// <summary>Idle anterior (não direcional) do Bren inicial, arquivado em Initial/Idle/Legacy.</summary>
-        public const string InitialIdleLegacyDir = InitialIdleDir + "/Legacy";
-        public static readonly string[] InitialIdleLegacyFiles =
-        {
-            "Bren_Idle_01.png", "Bren_Idle_02.png", "Bren_Idle_03.png", "Bren_Idle_04.png",
-            "Bren_Idle_05.png", "Bren_Idle_06.png", "Bren_Idle_07.png", "Bren_Idle_08.png",
-            "Bren_Idle_Spritesheet_Preview.png", "README.txt",
-        };
     }
 }

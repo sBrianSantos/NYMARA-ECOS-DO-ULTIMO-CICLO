@@ -1,31 +1,46 @@
 fileFormatVersion: 2
-guid: 7c1caa5b8e5d7054bbf03d8374ba4415
+guid: 9cedfeaae3ed3cc47ab8a1257874511f
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -652153572452685175
-    second: Bren_Idle_Spritesheet_Preview_0
+      213: 8813965313929346086
+    second: Spritesheet de Idle do Bren Initial - Right_0
   - first:
-      213: 2028216867322920830
-    second: Bren_Idle_Spritesheet_Preview_1
+      213: 8366298697476910087
+    second: Spritesheet de Idle do Bren Initial - Right_1
   - first:
-      213: -3510449311702817104
-    second: Bren_Idle_Spritesheet_Preview_2
+      213: -9051641682082494319
+    second: Spritesheet de Idle do Bren Initial - Right_2
   - first:
-      213: 2916895078612758693
-    second: Bren_Idle_Spritesheet_Preview_3
+      213: 2724314558182165715
+    second: Spritesheet de Idle do Bren Initial - Right_3
   - first:
-      213: 6777584029958819001
-    second: Bren_Idle_Spritesheet_Preview_4
+      213: 6467425943876263795
+    second: Spritesheet de Idle do Bren Initial - Right_4
   - first:
-      213: -1182401423418774117
-    second: Bren_Idle_Spritesheet_Preview_5
+      213: 8205959710423072905
+    second: Spritesheet de Idle do Bren Initial - Right_5
   - first:
-      213: -4997862650977717117
-    second: Bren_Idle_Spritesheet_Preview_6
+      213: -67966885207787368
+    second: Spritesheet de Idle do Bren Initial - Right_6
   - first:
-      213: 2675125158343306483
-    second: Bren_Idle_Spritesheet_Preview_7
+      213: 172028690355353752
+    second: Spritesheet de Idle do Bren Initial - Right_7
+  - first:
+      213: -5681602139359529282
+    second: Spritesheet de Idle do Bren Initial - Right_8
+  - first:
+      213: -5125156853218989008
+    second: Spritesheet de Idle do Bren Initial - Right_9
+  - first:
+      213: -2582241317660954008
+    second: Spritesheet de Idle do Bren Initial - Right_10
+  - first:
+      213: 4027140525786735629
+    second: Spritesheet de Idle do Bren Initial - Right_11
+  - first:
+      213: 7406859080422835252
+    second: Spritesheet de Idle do Bren Initial - Right_12
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -69,10 +84,10 @@ TextureImporter:
   compressionQuality: 50
   spriteMode: 2
   spriteExtrude: 1
-  spriteMeshType: 1
+  spriteMeshType: 0
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
-  spritePixelsToUnits: 100
+  spritePixelsToUnits: 394
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -95,10 +110,10 @@ TextureImporter:
   platformSettings:
   - serializedVersion: 4
     buildTarget: DefaultTexturePlatform
-    maxTextureSize: 2048
+    maxTextureSize: 4096
     resizeAlgorithm: 0
     textureFormat: -1
-    textureCompression: 1
+    textureCompression: 0
     compressionQuality: 50
     crunchedCompression: 0
     allowsAlphaSplitting: 0
@@ -149,177 +164,177 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Bren_Idle_Spritesheet_Preview_0
+      name: Bren_Idle_Right_01
       rect:
         serializedVersion: 2
-        x: 22
-        y: 7
-        width: 180
-        height: 554
-      alignment: 0
-      pivot: {x: 0, y: 0}
+        x: 0
+        y: 0
+        width: 272
+        height: 724
+      alignment: 9
+      pivot: {x: 0.57573533, y: 0.03314917}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: 98aa4f6f7c513f6f0800000000000000
-      internalID: -652153572452685175
+      spriteID: 184f102ba0bea104c9692c5d907a4b69
+      internalID: -1697701358
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Bren_Idle_Spritesheet_Preview_1
+      name: Bren_Idle_Right_02
       rect:
         serializedVersion: 2
-        x: 252
-        y: 7
-        width: 168
-        height: 555
-      alignment: 0
-      pivot: {x: 0, y: 0}
+        x: 272
+        y: 0
+        width: 271
+        height: 724
+      alignment: 9
+      pivot: {x: 0.5778598, y: 0.03314917}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: e7ffc30be7ca52c10800000000000000
-      internalID: 2028216867322920830
+      spriteID: c6d38a6237f396146a02fc5bcf4133e8
+      internalID: -791309859
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Bren_Idle_Spritesheet_Preview_2
+      name: Bren_Idle_Right_03
       rect:
         serializedVersion: 2
-        x: 468
-        y: 7
-        width: 183
-        height: 543
-      alignment: 0
-      pivot: {x: 0, y: 0}
+        x: 543
+        y: 0
+        width: 272
+        height: 724
+      alignment: 9
+      pivot: {x: 0.57573533, y: 0.03314917}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: 0b660fd33f0684fc0800000000000000
-      internalID: -3510449311702817104
+      spriteID: f7a5e8d74316dd24a82c87f63f1a436d
+      internalID: -1984523602
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Bren_Idle_Spritesheet_Preview_3
+      name: Bren_Idle_Right_04
       rect:
         serializedVersion: 2
-        x: 697
-        y: 7
-        width: 173
-        height: 551
-      alignment: 0
-      pivot: {x: 0, y: 0}
+        x: 815
+        y: 0
+        width: 271
+        height: 724
+      alignment: 9
+      pivot: {x: 0.5778598, y: 0.03314917}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: 5a07ccf9e94ea7820800000000000000
-      internalID: 2916895078612758693
+      spriteID: c71b57b545841ca47bf44d26fd30f0d0
+      internalID: -2008784612
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Bren_Idle_Spritesheet_Preview_4
+      name: Bren_Idle_Right_05
       rect:
         serializedVersion: 2
-        x: 921
-        y: 7
-        width: 173
-        height: 556
-      alignment: 0
-      pivot: {x: 0, y: 0}
+        x: 1086
+        y: 0
+        width: 272
+        height: 724
+      alignment: 9
+      pivot: {x: 0.57573533, y: 0.03314917}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: 9bc4e0d14c0de0e50800000000000000
-      internalID: 6777584029958819001
+      spriteID: d64831d795f1a474b95312642ca8f06e
+      internalID: 2046186573
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Bren_Idle_Spritesheet_Preview_5
+      name: Bren_Idle_Right_06
       rect:
         serializedVersion: 2
-        x: 1141
-        y: 7
-        width: 181
-        height: 557
-      alignment: 0
-      pivot: {x: 0, y: 0}
+        x: 1358
+        y: 0
+        width: 271
+        height: 724
+      alignment: 9
+      pivot: {x: 0.5778598, y: 0.03314917}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: b9d25378b24479fe0800000000000000
-      internalID: -1182401423418774117
+      spriteID: 1bc9a9874ec26c544ad32cfb8eec309b
+      internalID: 1346449413
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Bren_Idle_Spritesheet_Preview_6
+      name: Bren_Idle_Right_07
       rect:
         serializedVersion: 2
-        x: 1368
-        y: 7
-        width: 175
-        height: 550
-      alignment: 0
-      pivot: {x: 0, y: 0}
+        x: 1629
+        y: 0
+        width: 272
+        height: 724
+      alignment: 9
+      pivot: {x: 0.57573533, y: 0.03314917}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: 384f744166604aab0800000000000000
-      internalID: -4997862650977717117
+      spriteID: 9074a9b3f70248443a93700d58204ded
+      internalID: 2106447400
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Bren_Idle_Spritesheet_Preview_7
+      name: Bren_Idle_Right_08
       rect:
         serializedVersion: 2
-        x: 1592
-        y: 7
-        width: 176
-        height: 553
-      alignment: 0
-      pivot: {x: 0, y: 0}
+        x: 1901
+        y: 0
+        width: 271
+        height: 724
+      alignment: 9
+      pivot: {x: 0.5778598, y: 0.03314917}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: 3fc63c87824ff1520800000000000000
-      internalID: 2675125158343306483
+      spriteID: a070d157f1be2e04aad535d49d1ead00
+      internalID: -952180242
       vertices: []
       indices: 
       edges: []
@@ -328,7 +343,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID: 0fe420ae59095074ebe53670365837c7
     internalID: 0
     vertices: []
     indices: 
@@ -338,14 +353,14 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Bren_Idle_Spritesheet_Preview_0: -652153572452685175
-      Bren_Idle_Spritesheet_Preview_1: 2028216867322920830
-      Bren_Idle_Spritesheet_Preview_2: -3510449311702817104
-      Bren_Idle_Spritesheet_Preview_3: 2916895078612758693
-      Bren_Idle_Spritesheet_Preview_4: 6777584029958819001
-      Bren_Idle_Spritesheet_Preview_5: -1182401423418774117
-      Bren_Idle_Spritesheet_Preview_6: -4997862650977717117
-      Bren_Idle_Spritesheet_Preview_7: 2675125158343306483
+      Bren_Idle_Right_01: -1697701358
+      Bren_Idle_Right_02: -791309859
+      Bren_Idle_Right_03: -1984523602
+      Bren_Idle_Right_04: -2008784612
+      Bren_Idle_Right_05: 2046186573
+      Bren_Idle_Right_06: 1346449413
+      Bren_Idle_Right_07: 2106447400
+      Bren_Idle_Right_08: -952180242
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

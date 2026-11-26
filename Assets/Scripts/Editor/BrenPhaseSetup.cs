@@ -6,6 +6,7 @@ using Nymara.UI;
 using Nymara.Visual;
 using UnityEditor;
 using UnityEditor.SceneManagement;
+using UnityEditor.U2D.Sprites;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -26,8 +27,8 @@ namespace Nymara.EditorTools
         public const string Proto01Path = "Assets/Scenes/Prototypes/Prototype_01_MovementCombat.unity";
         public const string Proto02Path = "Assets/Scenes/Prototypes/Prototype_02_Bren_Initial.unity";
 
-        /// <summary>Velocidade do Idle inicial (quadros por segundo); pedido: testar entre 6 e 8.</summary>
-        public const float InitialIdleFps = 7f;
+        /// <summary>Velocidade do Idle inicial (quadros por segundo); antes 7; reduzido a pedido para um Idle mais calmo.</summary>
+        public const float InitialIdleFps = 5f;
 
         [MenuItem("NYMARA/Bren/Executar tudo (organizar, Idle, prefab, Prototype 02)", priority = 40)]
         public static void RunAll()
@@ -36,7 +37,6 @@ namespace Nymara.EditorTools
             OrganizeFolders();
             ConfigureInitialIdleImport();
             CreateOrUpdateInitialPrefab();
-            ArchiveLegacyIdle();
             CreatePrototype02();
         }
 
@@ -75,48 +75,87 @@ namespace Nymara.EditorTools
 
         // ------------------------------------------------------------------ 2. importação do Idle inicial (direcional)
         /// <summary>
-        /// PPU do Idle direcional: o personagem ocupa ~663 px (alfa &gt; 0,5) dos 720 px de altura do quadro.
+        /// PPU do Idle direcional: o personagem ocupa ~663–668 px (alfa &gt; 20) dos 724 px de altura do quadro.
         /// 663 / 394 ≈ 1,68 u, a mesma altura visual do Idle anterior (~538 px / 320 PPU).
         /// </summary>
         public const float InitialIdlePpu = 394f;
-        /// <summary>Pés: última linha com alfa em 703 de 720 → 16 px de margem inferior (mesmo critério do Idle anterior).</summary>
-        public static readonly Vector2 InitialIdlePivot = new Vector2(0.5f, 16f / 720f);
+
+        // Idle Right e Left definitivos: dois spritesheets 2172×724 com 8 quadros lado a lado, na mesma grade de 271,5 px
+        // (célula i começa em x = round(i × 271,5)). Medido nos PNGs (alfa > 20):
+        //   Right: altura 654–671 px (média ≈ 663); pés na linha 696; centro da silhueta a ≈ 156,6 px da borda da célula.
+        //   Left:  altura 663–673 px (média ≈ 668); pés na linha 700; centro da silhueta a ≈ 147,1 px da borda da célula.
+        // Mesma altura do Idle anterior → PPU 394 nos dois. Pivô x no centro médio da silhueta (o leve balanço da arte é mantido);
+        // pivô y 3 px abaixo da base do pé: Right 724 − 697 − 3 = 24 px; Left 724 − 701 − 3 = 20 px.
+        public const int SheetWidth = 2172, SheetHeight = 724;
+        public const float SheetCellWidth = 271.5f;
+        public const float RightPivotX = 156.6f, RightPivotY = 24f;
+        public const float LeftPivotX = 147.1f, LeftPivotY = 20f;
 
         [MenuItem("NYMARA/Bren/2. Configurar importação do Idle inicial (Right e Left)", priority = 42)]
         public static void ConfigureInitialIdleImport()
         {
-            int n = 0;
-            for (int i = 1; i <= BrenArtPaths.InitialIdleFrames; i++)
-                foreach (var path in new[] { BrenArtPaths.InitialIdleRight(i), BrenArtPaths.InitialIdleLeft(i) })
-                {
-                    var ti = AssetImporter.GetAtPath(path) as TextureImporter;
-                    if (ti == null) { Debug.LogError($"[Bren] Quadro não encontrado: {path}"); continue; }
-                    ti.textureType = TextureImporterType.Sprite;
-                    ti.spriteImportMode = SpriteImportMode.Single;      // quadro inteiro 256x720: sem tremulação por recorte
-                    ti.spritePixelsPerUnit = InitialIdlePpu;
-                    ti.mipmapEnabled = false;
-                    ti.filterMode = FilterMode.Bilinear;
-                    ti.wrapMode = TextureWrapMode.Clamp;
-                    ti.alphaIsTransparency = true;
-                    ti.maxTextureSize = 2048;
-                    ti.textureCompression = TextureImporterCompression.Uncompressed;
-                    var s = new TextureImporterSettings();
-                    ti.ReadTextureSettings(s);
-                    s.spriteAlignment = (int)SpriteAlignment.Custom;
-                    s.spritePivot = InitialIdlePivot;                   // mesmo pivô nas duas direções
-                    s.spriteMeshType = SpriteMeshType.FullRect;
-                    s.spriteExtrude = 1;
-                    ti.SetTextureSettings(s);
-                    ti.SaveAndReimport();
-                    n++;
-                }
-            Debug.Log($"[Bren] Idle inicial direcional: {n} quadros como Sprite Single, PPU {InitialIdlePpu}, pivô nos pés, bilinear, sem compressão.");
+            int n = ConfigureSheet(BrenArtPaths.InitialIdleRightSheet, BrenArtPaths.InitialIdleRightFrameName, RightPivotX, RightPivotY)
+                  + ConfigureSheet(BrenArtPaths.InitialIdleLeftSheet, BrenArtPaths.InitialIdleLeftFrameName, LeftPivotX, LeftPivotY);
+            Debug.Log($"[Bren] Idle inicial: {n} quadros (Right e Left, spritesheets fatiados), PPU {InitialIdlePpu}, pivô nos pés, bilinear, sem compressão.");
         }
 
-        private static Sprite[] LoadIdle(bool left) =>
-            Enumerable.Range(1, BrenArtPaths.InitialIdleFrames)
-                .Select(i => AssetDatabase.LoadAssetAtPath<Sprite>(left ? BrenArtPaths.InitialIdleLeft(i) : BrenArtPaths.InitialIdleRight(i)))
-                .ToArray();
+        private static int ConfigureSheet(string path, System.Func<int, string> frameName, float pivotX, float pivotY)
+        {
+            var ti = AssetImporter.GetAtPath(path) as TextureImporter;
+            if (ti == null) { Debug.LogError($"[Bren] Spritesheet não encontrado: {path}"); return 0; }
+            ti.textureType = TextureImporterType.Sprite;
+            ti.spriteImportMode = SpriteImportMode.Multiple;
+            ti.spritePixelsPerUnit = InitialIdlePpu;
+            ti.mipmapEnabled = false;
+            ti.filterMode = FilterMode.Bilinear;
+            ti.wrapMode = TextureWrapMode.Clamp;
+            ti.alphaIsTransparency = true;
+            ti.maxTextureSize = 4096;                              // 2172 px de largura: 2048 reduziria a arte
+            ti.textureCompression = TextureImporterCompression.Uncompressed;
+            var st = new TextureImporterSettings();
+            ti.ReadTextureSettings(st);
+            st.spriteMeshType = SpriteMeshType.FullRect;
+            st.spriteExtrude = 1;
+            ti.SetTextureSettings(st);
+
+            var factory = new SpriteDataProviderFactories();
+            factory.Init();
+            var dp = factory.GetSpriteEditorDataProviderFromObject(ti);
+            dp.InitSpriteEditorDataProvider();
+            var existing = new Dictionary<string, GUID>();
+            foreach (var r in dp.GetSpriteRects()) existing[r.name] = r.spriteID;    // IDs estáveis entre execuções
+            var rects = new List<SpriteRect>();
+            for (int i = 0; i < BrenArtPaths.InitialIdleFrames; i++)
+            {
+                int x0 = Mathf.FloorToInt(i * SheetCellWidth + 0.5f);
+                int x1 = i == BrenArtPaths.InitialIdleFrames - 1 ? SheetWidth : Mathf.FloorToInt((i + 1) * SheetCellWidth + 0.5f);
+                string name = frameName(i + 1);
+                rects.Add(new SpriteRect
+                {
+                    name = name,
+                    rect = new Rect(x0, 0, x1 - x0, SheetHeight),
+                    alignment = SpriteAlignment.Custom,
+                    pivot = new Vector2(pivotX / (x1 - x0), pivotY / SheetHeight),
+                    border = Vector4.zero,
+                    spriteID = existing.TryGetValue(name, out var id) ? id : GUID.Generate(),
+                });
+            }
+            dp.SetSpriteRects(rects.ToArray());
+            var names = dp.GetDataProvider<ISpriteNameFileIdDataProvider>();
+            names?.SetNameFileIdPairs(rects.Select(r => new SpriteNameFileIdPair(r.name, r.spriteID)));
+            dp.Apply();
+            ti.SaveAndReimport();
+            return rects.Count;
+        }
+
+        private static Sprite[] LoadIdle(bool left)
+        {
+            string path = left ? BrenArtPaths.InitialIdleLeftSheet : BrenArtPaths.InitialIdleRightSheet;
+            System.Func<int, string> frameName = left ? BrenArtPaths.InitialIdleLeftFrameName : BrenArtPaths.InitialIdleRightFrameName;
+            var all = AssetDatabase.LoadAllAssetsAtPath(path).OfType<Sprite>().ToArray();
+            return Enumerable.Range(1, BrenArtPaths.InitialIdleFrames)
+                .Select(i => all.FirstOrDefault(sp => sp.name == frameName(i))).ToArray();
+        }
 
         // ------------------------------------------------------------------ 3. prefab variante
         [MenuItem("NYMARA/Bren/3. Criar ou atualizar prefab Bren_Initial", priority = 43)]
@@ -181,32 +220,6 @@ namespace Nymara.EditorTools
             // Fase sem arma: o combate fica desligado nesta variante (componente mantido por dependências de PlayerRespawn/HUD).
             var combat = root.GetComponent<PlayerCombat>();
             if (combat != null) combat.enabled = false;
-        }
-
-        // ------------------------------------------------------------------ 3b. arquivar o Idle anterior
-        [MenuItem("NYMARA/Bren/3b. Arquivar Idle antigo do Bren inicial (Legacy)", priority = 45)]
-        public static void ArchiveLegacyIdle()
-        {
-            EnsureFolder(BrenArtPaths.InitialIdleLegacyDir);
-            // Segurança: só move se nenhum prefab/cena ainda depender dos arquivos antigos.
-            var users = AssetDatabase.FindAssets("t:Prefab t:Scene", new[] { "Assets" }).Select(AssetDatabase.GUIDToAssetPath).ToArray();
-            int moved = 0;
-            foreach (var file in BrenArtPaths.InitialIdleLegacyFiles)
-            {
-                string src = $"{BrenArtPaths.InitialIdleDir}/{file}";
-                if (AssetDatabase.LoadMainAssetAtPath(src) == null) continue;   // já arquivado (idempotente)
-                var dependents = users.Where(u => AssetDatabase.GetDependencies(u, true).Contains(src)).ToArray();
-                if (dependents.Length > 0)
-                {
-                    Debug.LogWarning($"[Bren] {src} ainda é usado por {string.Join(", ", dependents)}; mantido no lugar.");
-                    continue;
-                }
-                string err = AssetDatabase.MoveAsset(src, $"{BrenArtPaths.InitialIdleLegacyDir}/{file}");
-                if (!string.IsNullOrEmpty(err)) Debug.LogError($"[Bren] Falha ao arquivar {src}: {err}");
-                else moved++;
-            }
-            AssetDatabase.SaveAssets();
-            Debug.Log($"[Bren] Idle antigo: {moved} arquivo(s) movidos para {BrenArtPaths.InitialIdleLegacyDir} (GUIDs preservados).");
         }
 
         // ------------------------------------------------------------------ 4. cena
