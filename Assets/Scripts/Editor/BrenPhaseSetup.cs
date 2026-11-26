@@ -195,6 +195,26 @@ namespace Nymara.EditorTools
             for (int i = 0; i < values.Length; i++) p.GetArrayElementAtIndex(i).objectReferenceValue = values[i];
         }
 
+        /// <summary>Arte própria do Bren inicial (qualquer subpasta de Initial/).</summary>
+        private static bool IsInitialArt(Object o) =>
+            o == null || AssetDatabase.GetAssetPath(o).StartsWith(BrenArtPaths.Root + "/Initial/");
+
+        /// <summary>
+        /// Campo único: limpa se apontar para arte de fora de Initial/. Array: limpa (tamanho 0) se algum quadro for de fora
+        /// de Initial/; caso contrário mantém como está. Rodar duas vezes dá o mesmo resultado.
+        /// </summary>
+        private static void KeepOnlyInitialArt(SerializedProperty p)
+        {
+            if (p == null) return;
+            if (p.isArray)
+            {
+                for (int i = 0; i < p.arraySize; i++)
+                    if (!IsInitialArt(p.GetArrayElementAtIndex(i).objectReferenceValue)) { p.arraySize = 0; return; }
+                return;
+            }
+            if (!IsInitialArt(p.objectReferenceValue)) p.objectReferenceValue = null;
+        }
+
         /// <summary>Overrides do Bren inicial sobre o prefab com espada. Só visuais/combate desligado; movimento e física herdados.</summary>
         private static void ConfigureInitial(GameObject root, Sprite[] idleRight, Sprite[] idleLeft)
         {
@@ -205,15 +225,16 @@ namespace Nymara.EditorTools
             anim.FindProperty("directionalSprites").boolValue = true;   // sem espelhamento: quadros próprios por direção
             SetArray(anim, "idle", idleRight);
             SetArray(anim, "idleLeft", idleLeft);
-            // Sem arte própria ainda (Walk/Run/Jump/Fall/Land/Hurt): esses estados usam o Idle da direção atual.
-            // Nunca os quadros da fase com espada.
-            SetArray(anim, "run", new Sprite[0]);
-            SetArray(anim, "runLeft", new Sprite[0]);
+            // Demais estados (Run, Jump, Fall, Land, Dash, Hurt, combate): idempotente. Só limpa o que aponta para arte que NÃO é
+            // do Bren inicial (na prática, os quadros da fase com espada herdados do Player.prefab). Quadros de Initial/ já
+            // configurados (ex.: Run Right/Left no futuro) são preservados ao rodar o setup de novo. Numa variante nova, tudo vem
+            // herdado da espada e é limpo: estados sem arte usam o Idle da direção atual.
+            foreach (var f in new[] { "run", "runLeft" }) KeepOnlyInitialArt(anim.FindProperty(f));
             foreach (var f in new[] { "jump", "apex", "fall", "land", "dash", "hurt",
                                       "jumpLeft", "apexLeft", "fallLeft", "landLeft", "dashLeft", "hurtLeft",
                                       "atk1Wind", "atk1Hit", "atk1Rec", "atk2Wind", "atk2Hit", "atk2Rec",
                                       "atk3Wind", "atk3Hit", "atk3Rec", "charge", "chargeFull", "chargedHit", "diveWind", "dive" })
-                anim.FindProperty(f).objectReferenceValue = null;
+                KeepOnlyInitialArt(anim.FindProperty(f));
             anim.FindProperty("idleFrameTime").floatValue = 1f / InitialIdleFps;
             anim.ApplyModifiedPropertiesWithoutUndo();
 
